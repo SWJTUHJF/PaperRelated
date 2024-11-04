@@ -1,0 +1,5 @@
+# 忽略 Python 缓存目录  
+__pycache__/  
+
+# 忽略 JetBrains IDE 配置目录  
+.idea/
