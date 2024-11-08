@@ -10,13 +10,16 @@ class FW:
         self.set_gap: float = set_gap
         self.real_gap: float = math.inf
         self.bisection_gap: float = 0.001
+        self.gap_list: list[float] = list()
         self.main()
 
     # algorithm implementation
     def main(self):
         iter_times = 0
         self.initialize()
-        while self.real_gap > self.set_gap:
+        while abs(self.real_gap) > self.set_gap:
+            if iter_times % 5 == 0 and iter_times != 0:
+                print(f'{iter_times} iteration: current gap = {self.real_gap:.5f}')
             self.all_or_nothing()
             self.check_convergence()
             if iter_times == 0:
@@ -35,13 +38,14 @@ class FW:
             state.set_flow(0)
         self.net.update_state_cost()
 
-    def all_or_nothing(self):
+    def all_or_nothing(self):  # TODO 3. This is the error point: flows may be wrongly generated.
         for state in self.net.link_states:
             state.set_aux_flow(0)
         for dest in self.net.DEST:
             osp(self.net, dest)
             self.net.generate_rho(dest)
             self.net.update_TM(dest)
+            self.net.generate_y(dest)
             mtx_i = np.identity(self.net.number_of_link_states)
             mtx_inv_A = np.linalg.inv(mtx_i - self.net.TM[dest].T)
             temp = mtx_inv_A @ self.net.generate_b()
@@ -53,11 +57,9 @@ class FW:
         denominator = 0
         for state in self.net.link_states:
             numerator += state.get_cost() * state.get_flow()
-        for od in self.net.ODPAIR:
-            ori = od.origin
-            dem = od.demand
-            denominator += dem * ori.get_ETT()
-        self.real_gap = numerator/denominator - 1
+            denominator += state.get_cost() * state.get_aux_flow()
+        self.real_gap = numerator / denominator - 1
+        self.gap_list.append(self.real_gap)
 
     def optimal_step_size(self):
         def func(step):
@@ -67,25 +69,22 @@ class FW:
                 cost = state.get_specific_cost(val) * (state.get_aux_flow() - state.get_flow())
                 res += cost
             return res
-        left = 0
-        right = 1
-        mid = (right - left) / 2
-        max_iter_times = 500
-        iter_times = 1
-        while right - left > self.bisection_gap:
-            iter_times += 1
+        left, right, mid = 0, 1, 0.5
+        iter_times, max_iter_times = 1, 500
+        while abs(func(mid)) > self.bisection_gap:
             if iter_times == max_iter_times:
                 raise RuntimeError('Reach maximum iteration times in bisection part but still fail to converge.')
             if abs(func(mid)) <= self.bisection_gap:
                 return mid
-            elif func(mid) * func(right) > 0:
+            if func(mid) * func(right) > 0:
                 right = mid
             else:
                 left = mid
             mid = (right + left) / 2
+            iter_times += 1
         return mid
 
 
 if __name__ == "__main__":
     sf = Network("SiouxFalls")
-    result = FW(net=sf, set_gap=0.0001)
+    result = FW(net=sf, set_gap=0.01)

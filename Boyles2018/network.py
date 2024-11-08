@@ -114,6 +114,18 @@ class _State:
         # return (f'link-state: {self.__mother_link.link_id}-{self.state_id},'
         #         f' cost, time and toll are {self.__cost, self.__time, self.__toll}')
 
+    def get_fft(self):
+        return self.__fft
+
+    def get_b(self):
+        return self.__b
+
+    def get_power(self):
+        return self.__power
+
+    def get_capacity(self):
+        return self.__capacity
+
     def get_prob(self):
         return self.__prob
 
@@ -202,6 +214,10 @@ class _Policy:
     def get_mapping(self, cur_node, message):
         return self.__mapping[cur_node][message]
 
+    def print_whole_mapping(self):
+        for key, val in self.__mapping.items():
+            print(f'{key}: {val}')
+
 
 class Network:
     def __init__(self, network_name):
@@ -226,7 +242,6 @@ class Network:
         self.__initialize_node()
         self.__generate_policy()
         self.__generate_TM()
-        self.__generate_y()
         self.update_state_cost()
 
     def __read_network(self):
@@ -256,7 +271,7 @@ class Network:
                 head.set_upstream_link(temp)
             # create link state
             self.number_of_link_states = self.number_of_links * 2
-            for link in self.LINK[1:]:
+            for link in self.LINK[1:]:  # TODO
                 temp = _State(1, link, 0.9, link.capacity*0.9,
                               link.power, link.b, link.fft, link.tail, link.head)
                 temp1 = _State(2, link, 0.1, link.capacity*0.1*0.5,
@@ -324,30 +339,35 @@ class Network:
                     raise ValueError("No corresponding state found when generating rho.")
 
     def update_TM(self, dest: _Node):
+        # create transition matrix
         self.TM[dest] = np.zeros(shape=(self.number_of_link_states, self.number_of_link_states))
         for cur_node in self.NODE[1:]:
             dl = cur_node.get_downstream_link()
+            # find the corresponding rows
             for i, row in enumerate(self.link_states):
                 if row.get_head() == cur_node:
+                    # find the corresponding columns
                     for link in dl:
                         for state in link.link_state:
                             rho = state.get_rho()
                             j = self.link_states.index(state)
                             self.TM[dest][i][j] = rho
 
-    def __generate_y(self):
+    def generate_y(self, dest):  # TODO 2
+        self.vec_y: defaultdict[_Node: float] = defaultdict(float)
         for od in self.ODPAIR:
-            head = od.origin
-            dem = od.demand
-            self.vec_y[head] += dem
+            if od.destination == dest:
+                self.vec_y[od.origin] += od.demand
 
     def generate_b(self):
         vec_b = np.zeros(self.number_of_link_states)
         for i, state in enumerate(self.link_states):
-            tail = state.get_head()
-            temp_y = self.vec_y[tail]
-            vec_b[i] = state.get_rho() * temp_y
+            tail = state.get_tail()  # TODO 1
+            vec_b[i] = state.get_rho() * self.vec_y[tail]
         return vec_b
+
+    def current_TETT(self):
+        return sum([state.get_flow() * state.get_cost() for state in self.link_states])
 
 
 if __name__ == "__main__":

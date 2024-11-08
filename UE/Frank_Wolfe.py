@@ -95,6 +95,9 @@ def conduct_FW(network_name, SSA, accuracy1, accuracy2):
     max_iter_times = 500
     iter_times = 1
     while iter_times <= max_iter_times:
+        print("****************************************")
+        for link in LINKS:
+            print(f"link {link.link_id}: flow = {link.flow}")
         update_costs(LINKS)
         all_or_nothing(NODES, LINKS, OD_PAIRS, SSA)
         step = bisection(LINKS, accuracy1)
@@ -108,6 +111,7 @@ def conduct_FW(network_name, SSA, accuracy1, accuracy2):
                 print(f'{iter_times} iteration...')
                 # print(f'Total system travel time is {TSTT(LINKS):.2f}')
         iter_times += 1
+
     else:
         print("Reach maximum iteration times in main loop part but still fail to converge.")
         return LINKS

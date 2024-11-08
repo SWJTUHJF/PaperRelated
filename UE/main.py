@@ -10,7 +10,7 @@ import pandas as pd
 from Frank_Wolfe import conduct_FW
 
 
-name = 'cr'
+name = 'SiouxFalls'
 algorithm = 'LS'
 bisection_accuracy = 0.001  # accuracy 1
 convergence_accuracy = 0.001 # accuracy 2

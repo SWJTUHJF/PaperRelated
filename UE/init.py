@@ -15,7 +15,11 @@ def read_network(path):
         pattern = re.compile(r'[\w.~]+')
         data = [pattern.findall(line) for line in lines if len(pattern.findall(line)) != 0]
         number_of_nodes = int(data[1][-1])
-        data = data[6:]
+        for i in range(len(data)):
+            if '~' in data[i]:
+                data = data[i+1:]
+                break
+        print(data)
         # Create NODE and LINK object
         nodes = [NODE(i) for i in range(number_of_nodes+1)]  # Be CAREFUL that position 0 represents nothing
         links = [LINK(0)]
