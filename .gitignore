@@ -6,3 +6,6 @@ __pycache__/
 
 # 忽略.xlsx文件
 *.xlsx
+
+# 忽略Results下的文件
+Results/
