@@ -1,6 +1,5 @@
 import re
 import numpy as np
-import pandas as pd
 from collections import defaultdict
 
 
@@ -102,8 +101,6 @@ class _State:
         self.__fft: float = fft
         self.__flow: float = 0
         self.__cost: float = 0
-        self.__time: float = 0
-        self.__toll: float = 0  # toll is the money that is charged, time is the travel time, cost is the summation.
         self.__tail: _Node = tail
         self.__head: _Node = head
         self.__rho: float = 0
@@ -111,8 +108,6 @@ class _State:
 
     def __repr__(self):
         return f'link-state: {self.__mother_link.link_id}-{self.state_id}'
-        # return (f'link-state: {self.__mother_link.link_id}-{self.state_id},'
-        #         f' cost, time and toll are {self.__cost, self.__time, self.__toll}')
 
     def get_fft(self):
         return self.__fft
@@ -135,14 +130,11 @@ class _State:
     def get_flow(self):
         return self.__flow
 
-    def get_toll(self):
-        return self.__toll
-
     def get_cost(self):
         return self.__cost
 
     def get_time(self):
-        return self.__time
+        return self.__cost
 
     def get_tail(self):
         return self.__tail
@@ -162,30 +154,20 @@ class _State:
     def set_rho(self, val):
         self.__rho = val
 
+    def set_flow(self, val):
+        self.__flow = val
+
     def add_aux_flow(self, val):
         self.__aux_flow += val
 
     def add_rho(self, val):
         self.__rho += val
 
-    def set_flow(self, val):
-        self.__flow = val
-
     def update_cost(self):
-        self.__update_time()
-        self.__update_toll()
-        self.__cost = self.__time + self.__toll
-
-    def __update_time(self):
-        self.__time = self.__fft * (1 + self.__b * (self.__flow / self.__capacity) ** self.__power)
-
-    def __update_toll(self):
-        self.__toll = self.__fft * self.__b * self.__power * (self.__flow / self.__capacity) ** self.__power
+        self.__cost = self.__fft * (1 + self.__b * (self.__flow / self.__capacity) ** self.__power)
 
     def get_specific_cost(self, val):
-        _time = self.__fft * (1 + self.__b * (val / self.__capacity) ** self.__power)
-        _toll = self.__fft * self.__b * self.__power * (val / self.__capacity) ** self.__power
-        return _time + _toll
+        return self.__fft * (1 + self.__b * (val / self.__capacity) ** self.__power)
 
 
 class _ODPair:
@@ -199,8 +181,6 @@ class _Policy:
     def __init__(self, destination):
         self.destination: _Node = destination
         self.__mapping: defaultdict[_Node: dict[int: _Node]] = defaultdict(dict)
-        self.__TM: list[np.array] = list()  # Transition matrix
-        self.__InvTM: list[np.array] = list()  # Its inverse matrix
 
     def __repr__(self):
         line1 = f'\n***Policy information:***\n'
@@ -234,6 +214,8 @@ class Network:
         self.POLICY: dict[_Node: _Policy] = dict()
         self.TM: dict[_Node: np.array] = dict()
         self.vec_y: defaultdict[_Node: float] = defaultdict(float)
+        self.gap: list[float] = list()
+        self.gap_time: list[float] = list()
         self.__main()
 
     def __main(self):
@@ -271,7 +253,7 @@ class Network:
                 head.set_upstream_link(temp)
             # create link state
             self.number_of_link_states = self.number_of_links * 2
-            for link in self.LINK[1:]:  # TODO
+            for link in self.LINK[1:]:
                 temp = _State(1, link, 0.9, link.capacity*0.9,
                               link.power, link.b, link.fft, link.tail, link.head)
                 temp1 = _State(2, link, 0.1, link.capacity*0.1*0.5,
@@ -353,7 +335,7 @@ class Network:
                             j = self.link_states.index(state)
                             self.TM[dest][i][j] = rho
 
-    def generate_y(self, dest):  # TODO 2
+    def generate_y(self, dest):
         self.vec_y: defaultdict[_Node: float] = defaultdict(float)
         for od in self.ODPAIR:
             if od.destination == dest:
@@ -362,7 +344,7 @@ class Network:
     def generate_b(self):
         vec_b = np.zeros(self.number_of_link_states)
         for i, state in enumerate(self.link_states):
-            tail = state.get_tail()  # TODO 1
+            tail = state.get_tail()
             vec_b[i] = state.get_rho() * self.vec_y[tail]
         return vec_b
 
@@ -372,4 +354,3 @@ class Network:
 
 if __name__ == "__main__":
     sf = Network("SiouxFalls")
-

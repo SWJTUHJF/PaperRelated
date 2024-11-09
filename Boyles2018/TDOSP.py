@@ -1,5 +1,6 @@
 import math
-from network import Network
+import numpy as np
+from network_SO import Network
 from collections import deque, defaultdict
 
 
@@ -14,12 +15,10 @@ def TD_OSP(G: Network, dest):
     # Step 2
     while len(SEL):
         node_i = SEL.popleft()
-        xi = [1]
-        lbd = [math.inf]
+        xi, lbd = [1], [math.inf]
         for link in node_i.get_downstream_link():
             node_j = link.head
-            xi_prime = list()
-            lbd_prime = list()
+            xi_prime, lbd_prime = list(), list()
             for state in link.link_state:
                 for k in range(len(xi)):
                     xi_prime.append(xi[k] * state.get_prob())
@@ -28,9 +27,10 @@ def TD_OSP(G: Network, dest):
                     else:
                         lbd_prime.append(lbd[k])
             xi_prime, lbd_prime = reduce(xi_prime, lbd_prime)
-            xi, lbd = xi_prime[:], lbd_prime[:]
-        if dot(xi, lbd) < node_i.get_ETT():
-            node_i.set_ETT(dot(xi, lbd))
+            xi, lbd = xi_prime, lbd_prime
+        temp = np.dot(xi, lbd)
+        if temp < node_i.get_ETT():
+            node_i.set_ETT(temp)
             SEL.extend(node_i.get_upstream_node())
     # Step 3: Choose Optimal Policy
     for node in G.NODE[1:]:
@@ -46,13 +46,6 @@ def TD_OSP(G: Network, dest):
                         min_val = state.get_cost() + state.get_head().get_ETT()
                         next_node = state.get_head()
                 G.POLICY[dest].set_mapping(node, mv_id, next_node)
-
-
-def dot(v1, v2):
-    res = 0
-    for i in range(len(v1)):
-        res += v1[i] * v2[i]
-    return res
 
 
 def reduce(xi, lbd):
