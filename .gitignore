@@ -9,3 +9,6 @@ __pycache__/
 
 # 忽略Results下的文件
 Results/
+
+# 忽略test文件
+*test*
