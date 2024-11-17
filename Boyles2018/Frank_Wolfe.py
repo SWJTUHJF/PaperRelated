@@ -1,6 +1,5 @@
 import math
 import time
-
 import numpy as np
 from network_SO import Network
 from TDOSP import TD_OSP as osp
