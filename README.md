@@ -1,6 +1,6 @@
 # Repository for algorithms in Transportations--Traffic Assignment
 
-## Networks in this repository come from [here](https://github.com/bstabler/TransportationNetworks.).
+## Networks in this repository come from [here](https://github.com/bstabler/TransportationNetworks).
 
 ## Currently implemented algorithms:
 
